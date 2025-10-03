@@ -1,7 +1,5 @@
+#include <arpa/inet.h>
 #include <cerrno>
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <netinet/in.h>
@@ -18,14 +16,50 @@ void die(const string &msg) {
 }
 
 int main() {
-  int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-  struct sockaddr_in addr = {};
-  addr.sin_family = AF_INET;
-  addr.sin_port = ntohs(3000);
-  addr.sin_addr.s_addr = ntohl(INADDR_LOOPBACK);
-  int rv = connect(clientSocket, (const struct sockaddr *)&addr, sizeof(addr));
+  int client_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (client_fd < 0) {
+    die("socket()");
+  }
 
-  if (rv)
+  struct sockaddr_in server_addr = {};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(3000);
+  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+  if (connect(client_fd, (const struct sockaddr *)&server_addr,
+              sizeof(server_addr)) < 0) {
     die("connect()");
+  }
+  cout << "Successfully connected to the server. Type 'quit' to exit." << endl;
+
+  while (true) {
+    cout << "> ";
+    string line;
+    getline(cin, line);
+
+    if (line.empty()) {
+      continue;
+    }
+    if (line == "quit") {
+      break;
+    }
+
+    write(client_fd, line.c_str(), line.length());
+
+    vector<char> buffer(4096);
+    ssize_t bytes_read = read(client_fd, buffer.data(), buffer.size() - 1);
+    if (bytes_read <= 0) {
+      cout << "Server closed the connection or an error occurred." << endl;
+      break;
+    }
+
+    buffer[bytes_read] = '\0';
+    cout << "Server response: " << buffer.data() << endl;
+  }
+
+  close(client_fd);
+  cout << "Connection closed." << endl;
+
+  return 0;
 }
