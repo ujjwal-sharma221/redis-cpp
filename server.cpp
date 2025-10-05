@@ -4,9 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <deque>
 #include <fcntl.h>
-#include <iostream>
 #include <netinet/in.h>
 #include <poll.h>
 #include <string>
